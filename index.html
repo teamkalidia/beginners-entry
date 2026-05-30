@@ -527,11 +527,14 @@
                 background: transparent;
                 box-shadow: none;
                 padding: 0;
+                overflow-x: visible; /* スマホはカード化するため横スクロール不要 */
             }
 
             .table-container table {
                 display: block;
                 border: none;
+                min-width: 0; /* PC用の min-width:900px を解除して横スクロールを止める */
+                width: 100%;
             }
 
             .table-container thead {
