@@ -239,6 +239,77 @@
         .table-container tr.participant-row[data-pair="7"] { background-color: #fce7f3; } /* 薄いピンク */
         .table-container tr.participant-row[data-pair="8"] { background-color: #e0e7ff; } /* 薄い藤色 */
 
+        /* JS制御: 非表示にしたペア（PC=table-row / スマホ=block の両方を上書きして隠す） */
+        tr.pair-hidden {
+            display: none !important;
+        }
+
+        /* ペア追加／削除のコントロール */
+        .pair-controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1.25rem;
+            margin: 0.25rem 0 2rem;
+            flex-wrap: wrap;
+        }
+        .pair-toggle-btn {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.4rem;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-light);
+            padding: 0;
+        }
+        .pair-toggle-btn[hidden] {
+            display: none !important;
+        }
+        .pair-toggle-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            font-size: 1.6rem;
+            line-height: 1;
+            color: #ffffff;
+            box-shadow: var(--shadow-md);
+            transition: transform 0.1s ease, filter 0.15s ease;
+        }
+        .pair-toggle-add .pair-toggle-icon {
+            background: var(--primary);
+        }
+        .pair-toggle-add:hover .pair-toggle-text {
+            color: var(--primary);
+        }
+        .pair-toggle-remove .pair-toggle-icon {
+            background: #9ca3af;
+        }
+        .pair-toggle-btn:hover .pair-toggle-icon {
+            filter: brightness(1.08);
+        }
+        .pair-toggle-btn:active .pair-toggle-icon {
+            transform: scale(0.93);
+        }
+        .pair-counter {
+            font-weight: 700;
+            color: var(--text-light);
+            font-family: 'Outfit', sans-serif;
+            font-size: 1rem;
+            min-width: 84px;
+            text-align: center;
+        }
+        @media print {
+            .pair-controls { display: none !important; }
+        }
+
         .no-column {
             text-align: center;
             vertical-align: middle;
@@ -1588,6 +1659,21 @@
                         </tbody>
                     </table>
                 </div>
+
+                <!-- ペアの追加／削除コントロール -->
+                <div class="pair-controls">
+                    <button type="button" id="remove-pair-btn" class="pair-toggle-btn pair-toggle-remove"
+                        onclick="removePair()" hidden aria-label="最後のペアを減らす">
+                        <span class="pair-toggle-icon">−</span>
+                        <span class="pair-toggle-text">ペアを減らす</span>
+                    </button>
+                    <span id="pair-counter" class="pair-counter">1 / 8 ペア</span>
+                    <button type="button" id="add-pair-btn" class="pair-toggle-btn pair-toggle-add"
+                        onclick="addPair()" aria-label="ペアを追加">
+                        <span class="pair-toggle-icon">＋</span>
+                        <span class="pair-toggle-text">ペアを追加</span>
+                    </button>
+                </div>
             </section>
 
             <!-- 3. 下部自動計算 & 合計金額表示 -->
@@ -1723,6 +1809,9 @@
             const rows = document.querySelectorAll('.participant-row');
 
             rows.forEach(row => {
+                // 非表示のペアは集計対象外
+                if (row.classList.contains('pair-hidden')) return;
+
                 const nameInput = row.querySelector('.input-name');
                 const kanaInput = row.querySelector('.input-kana');
                 const genderSelect = row.querySelector('.input-gender');
@@ -1785,6 +1874,9 @@
             const rows = document.querySelectorAll('.participant-row');
 
             rows.forEach((row, index) => {
+                // 非表示のペアは送信対象外
+                if (row.classList.contains('pair-hidden')) return;
+
                 const nameInput = row.querySelector('.input-name');
                 const kanaInput = row.querySelector('.input-kana');
                 const genderSelect = row.querySelector('.input-gender');
@@ -1911,6 +2003,65 @@
             // トップにスクロール
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
+
+        // ==========================================================================
+        // ペアの段階表示（初期はペア1のみ。＋で1ペアずつ追加、−で末尾ペアを削除。最大8ペア）
+        // ==========================================================================
+        const MAX_PAIRS = 8;
+        let visiblePairs = 1;
+
+        /**
+         * 現在の visiblePairs に応じて各ペアの表示/非表示・ボタン・カウンタを更新
+         */
+        function updatePairVisibility() {
+            document.querySelectorAll('tr.participant-row').forEach(row => {
+                const pair = parseInt(row.getAttribute('data-pair'), 10);
+                row.classList.toggle('pair-hidden', pair > visiblePairs);
+            });
+
+            document.getElementById('pair-counter').textContent = visiblePairs + ' / ' + MAX_PAIRS + ' ペア';
+            document.getElementById('add-pair-btn').hidden = (visiblePairs >= MAX_PAIRS);
+            document.getElementById('remove-pair-btn').hidden = (visiblePairs <= 1);
+
+            calculateTotal(); // 非表示ペアを除いた人数・金額に再計算
+        }
+
+        /**
+         * ペアを1つ追加表示し、追加したペアの先頭にスクロール＆フォーカス
+         */
+        function addPair() {
+            if (visiblePairs >= MAX_PAIRS) return;
+            visiblePairs++;
+            updatePairVisibility();
+
+            const newRow = document.querySelector('tr.participant-row[data-pair="' + visiblePairs + '"][data-member="1"]');
+            if (newRow) {
+                newRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                const firstInput = newRow.querySelector('input');
+                if (firstInput) firstInput.focus({ preventScroll: true });
+            }
+        }
+
+        /**
+         * 末尾のペアを1つ削除（入力値はクリアして混乱を防ぐ）
+         */
+        function removePair() {
+            if (visiblePairs <= 1) return;
+
+            // 閉じるペアの入力値をリセット
+            document.querySelectorAll('tr.participant-row[data-pair="' + visiblePairs + '"]').forEach(row => {
+                row.querySelectorAll('input, select').forEach(el => {
+                    el.value = '';
+                    el.classList.remove('invalid');
+                });
+            });
+
+            visiblePairs--;
+            updatePairVisibility();
+        }
+
+        // 初期化：ペア1のみ表示にする
+        updatePairVisibility();
     </script>
 
 </body>
