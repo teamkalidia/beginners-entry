@@ -184,6 +184,142 @@
             display: block;
         }
 
+        /* 送信ボタン無効化（二重送信防止） */
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            filter: grayscale(0.2);
+        }
+
+        /* 残項目チェックリスト */
+        .missing-checklist {
+            margin: 0 0 1.25rem;
+            padding: 1rem 1.25rem;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            line-height: 1.7;
+        }
+        .missing-checklist.has-missing {
+            background: #fff7ed;
+            border: 1px solid #fed7aa;
+            color: #9a3412;
+        }
+        .missing-checklist.complete {
+            background: #ecfdf5;
+            border: 1px solid #a7f3d0;
+            color: #065f46;
+            font-weight: 700;
+        }
+        .missing-checklist .mc-title {
+            font-weight: 700;
+            display: block;
+            margin-bottom: 0.4rem;
+        }
+        .missing-checklist ul {
+            margin: 0;
+            padding-left: 1.25rem;
+        }
+
+        /* 入力の自動復元バナー */
+        .draft-banner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            color: #1e40af;
+            border-radius: 10px;
+            padding: 0.75rem 1rem;
+            margin-bottom: 1.25rem;
+            font-size: 0.9rem;
+        }
+        .draft-banner[hidden] { display: none; }
+        .draft-banner button {
+            border: 1px solid #1e40af;
+            background: #fff;
+            color: #1e40af;
+            border-radius: 8px;
+            padding: 0.4rem 0.9rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        /* 送信前の確認モーダル */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(17, 24, 39, 0.55);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease;
+        }
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .modal-card {
+            background: #fff;
+            border-radius: 16px;
+            max-width: 460px;
+            width: 100%;
+            padding: 1.5rem;
+            box-shadow: var(--shadow-lg);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal-title {
+            font-size: 1.2rem;
+            margin: 0 0 0.5rem;
+            color: var(--text-dark);
+        }
+        .modal-lead {
+            font-size: 0.85rem;
+            color: var(--text-light);
+            margin: 0 0 1rem;
+            line-height: 1.6;
+        }
+        .modal-summary {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1.25rem;
+            font-size: 0.95rem;
+        }
+        .modal-summary th, .modal-summary td {
+            text-align: left;
+            padding: 0.55rem 0.5rem;
+            border-bottom: 1px solid #f0f0f0;
+            vertical-align: top;
+        }
+        .modal-summary th {
+            color: var(--text-light);
+            font-weight: 600;
+            white-space: nowrap;
+            width: 38%;
+        }
+        .modal-summary .cf-email {
+            font-weight: 700;
+            color: var(--primary);
+            word-break: break-all;
+        }
+        .modal-actions {
+            display: flex;
+            gap: 0.75rem;
+        }
+        .modal-actions .btn { flex: 1; }
+        @media (max-width: 768px) {
+            .modal-actions { flex-direction: column-reverse; }
+            .modal-actions .btn { width: 100%; }
+        }
+
         /* ==========================================================================
            4. 参加者名簿テーブル (No.1〜8)
            ========================================================================== */
@@ -1063,11 +1199,36 @@
         <div class="loading-text">データを送信しています...</div>
     </div>
 
+    <!-- 送信前の確認モーダル -->
+    <div id="confirm-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
+        <div class="modal-card">
+            <h2 class="modal-title" id="confirm-modal-title">この内容で送信します</h2>
+            <p class="modal-lead">特に<strong>メールアドレス</strong>に間違いがないかご確認ください。控えのPDFがこのアドレス宛てに届きます。</p>
+            <table class="modal-summary">
+                <tr><th>団体名</th><td id="cf-group">-</td></tr>
+                <tr><th>責任者氏名</th><td id="cf-name">-</td></tr>
+                <tr><th>メールアドレス</th><td id="cf-email" class="cf-email">-</td></tr>
+                <tr><th>登録人数</th><td id="cf-count">-</td></tr>
+                <tr><th>合計金額</th><td id="cf-amount">-</td></tr>
+            </table>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeConfirmModal()">修正する</button>
+                <button type="button" class="btn btn-primary" id="confirm-send-btn" onclick="confirmSend()">この内容で送信</button>
+            </div>
+        </div>
+    </div>
+
     <div id="form-container" class="container">
         <header>
             <h1>第13回伊那市ビギナーズバドミントン交流会 参加申込書</h1>
             <p class="subtitle">必要事項を入力し、画面右下の「印刷・PDF保存」または「送信する」ボタンを押してください。</p>
         </header>
+
+        <!-- 入力の自動復元バナー（前回の続きがある場合のみ表示） -->
+        <div id="draft-banner" class="draft-banner" hidden>
+            <span>前回の入力内容を復元しました。続きから入力できます。</span>
+            <button type="button" onclick="clearDraftAndReset()">最初から入力する</button>
+        </div>
 
         <!-- 送信完了のサンクスページ表示用コンテナ -->
         <div id="thanks-screen" class="thanks-container">
@@ -1119,29 +1280,29 @@
                     <div class="form-control">
                         <label for="rep-group">団体名 <span
                                 style="font-size: 0.75rem; font-weight: normal; color: var(--text-light);">（所属団体・クラブがない場合は自由に考えてください）</span></label>
-                        <input type="text" id="rep-group" required placeholder="例：◯◯バドミントンクラブ">
+                        <input type="text" id="rep-group" required autocomplete="organization" placeholder="例：◯◯バドミントンクラブ">
                         <div class="error-message">団体名を入力してください。</div>
                     </div>
                     <div class="form-control">
                         <label for="rep-address">住所</label>
-                        <input type="text" id="rep-address" required placeholder="例：長野県伊那市下新田○○-○"
+                        <input type="text" id="rep-address" required autocomplete="street-address" placeholder="例：長野県伊那市下新田○○-○"
                             oninput="this.value = this.value.replace(/,/g, '');">
                         <div class="error-message">住所を入力してください。</div>
                     </div>
                     <div class="form-control">
                         <label for="rep-name">氏名</label>
-                        <input type="text" id="rep-name" required placeholder="例：伊那 太郎">
+                        <input type="text" id="rep-name" required autocomplete="name" placeholder="例：伊那 太郎">
                         <div class="error-message">責任者氏名を入力してください。</div>
                     </div>
                     <div class="form-control">
                         <label for="rep-tel">電話番号</label>
-                        <input type="tel" id="rep-tel" required placeholder="例：090-1234-5678" pattern="[0-9\-]{10,13}">
+                        <input type="tel" id="rep-tel" required inputmode="tel" autocomplete="tel" placeholder="例：090-1234-5678" pattern="[0-9\-]{10,13}">
                         <div class="error-message">有効な電話番号を入力してください（例: 090-1234-5678）。</div>
                     </div>
                     <div class="form-control full-width">
                         <label for="rep-email">メールアドレス <span
                                 style="font-weight: normal; color: var(--text-light);">(送信完了後にこのアドレス宛てにPDF控えが自動返信されます)</span></label>
-                        <input type="email" id="rep-email" required placeholder="例：taro@example.com">
+                        <input type="email" id="rep-email" required inputmode="email" autocomplete="email" placeholder="例：taro@example.com">
                         <div class="error-message">有効なメールアドレスを入力してください。</div>
                     </div>
                 </div>
@@ -1663,14 +1824,14 @@
                 <!-- ペアの追加／削除コントロール -->
                 <div class="pair-controls">
                     <button type="button" id="remove-pair-btn" class="pair-toggle-btn pair-toggle-remove"
-                        onclick="removePair()" hidden aria-label="最後のペアを減らす">
-                        <span class="pair-toggle-icon">−</span>
+                        onclick="removePair()" hidden>
+                        <span class="pair-toggle-icon" aria-hidden="true">−</span>
                         <span class="pair-toggle-text">ペアを減らす</span>
                     </button>
-                    <span id="pair-counter" class="pair-counter">1 / 8 ペア</span>
+                    <span id="pair-counter" class="pair-counter" aria-live="polite">1 / 8 ペア</span>
                     <button type="button" id="add-pair-btn" class="pair-toggle-btn pair-toggle-add"
-                        onclick="addPair()" aria-label="ペアを追加">
-                        <span class="pair-toggle-icon">＋</span>
+                        onclick="addPair()">
+                        <span class="pair-toggle-icon" aria-hidden="true">＋</span>
                         <span class="pair-toggle-text">ペアを追加</span>
                     </button>
                 </div>
@@ -1693,6 +1854,9 @@
                     </div>
                 </div>
             </div>
+
+            <!-- 残項目チェックリスト（送信前に不足項目を可視化） -->
+            <div id="missing-checklist" class="missing-checklist" aria-live="polite"></div>
 
             <!-- 4. アクションボタン -->
             <div class="actions-group">
@@ -1844,6 +2008,9 @@
             // 画面および印刷用のデータ反映
             document.getElementById('total-participants').textContent = count;
             document.getElementById('total-amount').textContent = (count * ENTRY_FEE).toLocaleString();
+
+            updateMissingChecklist(); // 残項目チェックリストを更新
+            saveDraft();              // 入力内容を自動保存
         }
 
         /**
@@ -1950,7 +2117,42 @@
                 participants: participantsData
             };
 
-            // 6. GAS Web Appへの送信処理
+            // 6. 送信前に確認モーダルを表示（実際の送信は confirmSend() 経由で行う）
+            openConfirmModal(payload);
+        }
+
+        // ==========================================================================
+        // 送信前の確認モーダル & 実送信処理（二重送信防止つき）
+        // ==========================================================================
+        let pendingPayload = null;
+        let isSubmitting = false;
+
+        function openConfirmModal(payload) {
+            pendingPayload = payload;
+            document.getElementById('cf-group').textContent = payload.repGroup;
+            document.getElementById('cf-name').textContent = payload.repName;
+            document.getElementById('cf-email').textContent = payload.repEmail;
+            document.getElementById('cf-count').textContent = payload.totalParticipants + ' 名';
+            document.getElementById('cf-amount').textContent = '¥' + payload.totalAmount.toLocaleString();
+            document.getElementById('confirm-modal').classList.add('active');
+        }
+
+        function closeConfirmModal() {
+            document.getElementById('confirm-modal').classList.remove('active');
+        }
+
+        function confirmSend() {
+            closeConfirmModal();
+            if (pendingPayload) sendToServer(pendingPayload);
+        }
+
+        function sendToServer(payload) {
+            if (isSubmitting) return; // 二重送信防止
+            isSubmitting = true;
+
+            const submitBtn = document.getElementById('submit-btn');
+            submitBtn.disabled = true;
+
             const loadingScreen = document.getElementById('loading-screen');
             loadingScreen.classList.add('active'); // ローディング表示ON
 
@@ -1979,6 +2181,8 @@
                         loadingScreen.classList.remove('active');
                         console.error("Error sending data to GAS:", error);
                         alert("送信中にエラーが発生しました。ネットワーク接続を確認し、もう一度お試しください。");
+                        isSubmitting = false;       // 失敗時は再送信できるよう戻す
+                        submitBtn.disabled = false;
                     });
             }
         }
@@ -1987,6 +2191,9 @@
          * 送信完了後のサンクス画面表示切り替え
          */
         function showThanksPage(data) {
+            // 送信が完了したので保存済みの下書きを破棄
+            try { localStorage.removeItem(DRAFT_KEY); } catch (e) { /* 無視 */ }
+
             // ヘッダーとフォーム本体を非表示にする
             document.querySelector('header p.subtitle').style.display = 'none';
             document.getElementById('application-form').style.display = 'none';
@@ -2048,8 +2255,21 @@
         function removePair() {
             if (visiblePairs <= 1) return;
 
+            const rowsToClear = document.querySelectorAll('tr.participant-row[data-pair="' + visiblePairs + '"]');
+
+            // 入力済みの場合のみ確認（空のペアは確認なしで即削除）
+            let hasContent = false;
+            rowsToClear.forEach(row => {
+                row.querySelectorAll('input, select').forEach(el => {
+                    if (el.value.trim() !== '') hasContent = true;
+                });
+            });
+            if (hasContent && !confirm('ペア' + visiblePairs + 'の入力内容を削除します。よろしいですか？')) {
+                return;
+            }
+
             // 閉じるペアの入力値をリセット
-            document.querySelectorAll('tr.participant-row[data-pair="' + visiblePairs + '"]').forEach(row => {
+            rowsToClear.forEach(row => {
                 row.querySelectorAll('input, select').forEach(el => {
                     el.value = '';
                     el.classList.remove('invalid');
@@ -2060,8 +2280,182 @@
             updatePairVisibility();
         }
 
-        // 初期化：ペア1のみ表示にする
-        updatePairVisibility();
+        // ==========================================================================
+        // 入力内容の自動保存／復元（localStorage）
+        // ==========================================================================
+        const DRAFT_KEY = 'inashi_badminton_draft_v1';
+
+        function collectParticipants() {
+            const list = [];
+            document.querySelectorAll('tr.participant-row').forEach(row => {
+                list.push({
+                    pair: row.getAttribute('data-pair'),
+                    member: row.getAttribute('data-member'),
+                    kana: row.querySelector('.input-kana').value,
+                    name: row.querySelector('.input-name').value,
+                    gender: row.querySelector('.input-gender').value,
+                    birthdate: row.querySelector('.input-birthdate').value,
+                    address: row.querySelector('.input-address').value
+                });
+            });
+            return list;
+        }
+
+        function saveDraft() {
+            try {
+                const data = {
+                    visiblePairs: visiblePairs,
+                    rep: {
+                        group: document.getElementById('rep-group').value,
+                        address: document.getElementById('rep-address').value,
+                        name: document.getElementById('rep-name').value,
+                        tel: document.getElementById('rep-tel').value,
+                        email: document.getElementById('rep-email').value
+                    },
+                    participants: collectParticipants()
+                };
+                localStorage.setItem(DRAFT_KEY, JSON.stringify(data));
+            } catch (e) { /* localStorageが使えない環境では何もしない */ }
+        }
+
+        function restoreDraft() {
+            let data;
+            try {
+                const raw = localStorage.getItem(DRAFT_KEY);
+                if (!raw) return;
+                data = JSON.parse(raw);
+            } catch (e) { return; }
+            if (!data) return;
+
+            let hasContent = false;
+
+            if (data.rep) {
+                const map = { group: 'rep-group', address: 'rep-address', name: 'rep-name', tel: 'rep-tel', email: 'rep-email' };
+                Object.keys(map).forEach(k => {
+                    if (data.rep[k]) {
+                        document.getElementById(map[k]).value = data.rep[k];
+                        hasContent = true;
+                    }
+                });
+            }
+
+            if (Array.isArray(data.participants)) {
+                data.participants.forEach(p => {
+                    const row = document.querySelector('tr.participant-row[data-pair="' + p.pair + '"][data-member="' + p.member + '"]');
+                    if (!row) return;
+                    if (p.kana) { row.querySelector('.input-kana').value = p.kana; hasContent = true; }
+                    if (p.name) { row.querySelector('.input-name').value = p.name; hasContent = true; }
+                    if (p.gender) { row.querySelector('.input-gender').value = p.gender; hasContent = true; }
+                    if (p.birthdate) { row.querySelector('.input-birthdate').value = p.birthdate; hasContent = true; }
+                    if (p.address) { row.querySelector('.input-address').value = p.address; hasContent = true; }
+                });
+            }
+
+            if (data.visiblePairs) {
+                visiblePairs = Math.min(Math.max(parseInt(data.visiblePairs, 10) || 1, 1), MAX_PAIRS);
+            }
+
+            if (hasContent) {
+                document.getElementById('draft-banner').hidden = false;
+            }
+        }
+
+        function clearDraftAndReset() {
+            try { localStorage.removeItem(DRAFT_KEY); } catch (e) { /* 無視 */ }
+            window.location.reload();
+        }
+
+        // ==========================================================================
+        // 残項目チェックリスト（送信前に「あと何が必要か」を可視化）
+        // innerHTMLは使わず DOM生成のみで構築（XSS対策）
+        // ==========================================================================
+        function updateMissingChecklist() {
+            const box = document.getElementById('missing-checklist');
+            if (!box) return;
+            const missing = [];
+
+            const repLabels = { 'rep-group': '団体名', 'rep-address': '住所', 'rep-name': '氏名', 'rep-tel': '電話番号', 'rep-email': 'メールアドレス' };
+            Object.keys(repLabels).forEach(id => {
+                const el = document.getElementById(id);
+                const v = el.value.trim();
+                if (!v) {
+                    missing.push('責任者の「' + repLabels[id] + '」が未入力です');
+                } else if ((id === 'rep-tel' || id === 'rep-email') && !el.checkValidity()) {
+                    missing.push('責任者の「' + repLabels[id] + '」の形式を確認してください');
+                }
+            });
+
+            let anyParticipant = false;
+            document.querySelectorAll('tr.participant-row').forEach(row => {
+                if (row.classList.contains('pair-hidden')) return;
+                const kanaEl = row.querySelector('.input-kana');
+                const kana = kanaEl.value.trim();
+                const name = row.querySelector('.input-name').value.trim();
+                const gender = row.querySelector('.input-gender').value;
+                const bdEl = row.querySelector('.input-birthdate');
+                const who = 'ペア' + row.getAttribute('data-pair') + '・' + row.getAttribute('data-member') + '人目';
+                if (kana || name) {
+                    anyParticipant = true;
+                    if (!name) missing.push(who + 'の「氏名」が未入力です');
+                    if (!kana) missing.push(who + 'の「フリガナ」が未入力です');
+                    else if (kanaEl.classList.contains('invalid')) missing.push(who + 'の「フリガナ」はカタカナで入力してください');
+                    if (!gender) missing.push(who + 'の「性別」が未選択です');
+                    if (!bdEl.value.trim()) missing.push(who + 'の「生年月日」が未入力です');
+                    else if (bdEl.classList.contains('invalid')) missing.push(who + 'の「生年月日」を正しい日付で入力してください');
+                }
+            });
+            if (!anyParticipant) missing.push('参加者を最低1名入力してください');
+
+            // 中身を一旦クリア（textContent='' で安全に空に）
+            box.textContent = '';
+
+            if (missing.length === 0) {
+                box.className = 'missing-checklist complete';
+                box.textContent = '✓ 入力は完了しています。「送信する」を押してください。';
+            } else {
+                box.className = 'missing-checklist has-missing';
+                const title = document.createElement('span');
+                title.className = 'mc-title';
+                title.textContent = '送信するには、あと ' + missing.length + ' 項目の入力が必要です';
+                const ul = document.createElement('ul');
+                missing.forEach(m => {
+                    const li = document.createElement('li');
+                    li.textContent = m;
+                    ul.appendChild(li);
+                });
+                box.appendChild(title);
+                box.appendChild(ul);
+            }
+        }
+
+        // ==========================================================================
+        // 名簿入力欄に読み上げ用ラベルと数字キーボード指定を付与（アクセシビリティ＆入力最適化）
+        // ==========================================================================
+        function initRosterAccessibility() {
+            document.querySelectorAll('tr.participant-row').forEach(row => {
+                const who = 'ペア' + row.getAttribute('data-pair') + ' ' + row.getAttribute('data-member') + '人目';
+                const labels = [
+                    ['.input-kana', 'フリガナ'],
+                    ['.input-name', '氏名'],
+                    ['.input-gender', '性別'],
+                    ['.input-birthdate', '生年月日'],
+                    ['.input-address', '団体名または所属先']
+                ];
+                labels.forEach(pair => {
+                    const el = row.querySelector(pair[0]);
+                    if (el) el.setAttribute('aria-label', who + ' ' + pair[1]);
+                });
+                const bd = row.querySelector('.input-birthdate');
+                if (bd) bd.setAttribute('inputmode', 'numeric'); // 生年月日は数字キーボード
+            });
+        }
+
+        // ==========================================================================
+        // 初期化
+        // ==========================================================================
+        initRosterAccessibility();
+        restoreDraft();          // 前回入力があれば復元（visiblePairs も復元）
+        updatePairVisibility();  // ペア表示・人数・金額・チェックリストを初期反映
     </script>
 
 </body>
