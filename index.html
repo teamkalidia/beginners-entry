@@ -736,6 +736,36 @@
             background: transparent;
         }
 
+        /* 入金案内ボックス（完了画面で目立たせる） */
+        .payment-notice {
+            background: #fff7ed;
+            border: 2px solid #fb923c;
+            border-radius: 12px;
+            padding: 1.25rem 1.5rem;
+            max-width: 600px;
+            margin: 0 auto 2rem auto;
+            text-align: left;
+            line-height: 1.8;
+        }
+
+        .payment-notice-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #c2410c;
+            margin: 0 0 0.6rem 0;
+        }
+
+        .payment-notice p {
+            margin: 0;
+            color: var(--text-dark);
+            font-size: 0.95rem;
+        }
+
+        .payment-notice .accent {
+            color: #c2410c;
+            font-weight: 700;
+        }
+
         /* モバイル対応 (スマートフォン等の小画面デバイス向け入力最適化) */
         @media (max-width: 768px) {
             .responsibility-group {
@@ -1271,11 +1301,20 @@
                     <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
                 </svg>
             </div>
-            <h2 class="thanks-title">送信が完了しました！</h2>
+            <h2 class="thanks-title">お申し込みを受け付けました</h2>
             <p class="thanks-text">
-                ご入力いただいた内容はGoogleスプレッドシートに正常に保存されました。<br>
-                また、責任者様のメールアドレス宛てに、元の申込書PDFを添付した「申込完了控えメール」を自動送信いたしました。ご確認ください。
+                ご入力いただいた内容を受け付けました。<br>
+                ご登録のメールアドレス宛てに、申込書PDFを添付した「お申し込み内容の控え」を自動でお送りしています。ご確認ください。
             </p>
+            <div class="payment-notice">
+                <p class="payment-notice-title">⚠ お申し込みはまだ完了していません</p>
+                <p>
+                    このお申し込みは、参加料のご入金（お振込）をもって完了となります。<br>
+                    <span class="accent">お支払い期限：<span id="thx-deadline">-</span></span><br>
+                    控えメール（PDF添付）に記載の送付先へ、上記の期限までに参加料のご入金・お振込手続きをお願いいたします。<br>
+                    ご入金を確認した時点で、正式にお申し込み完了となります。
+                </p>
+            </div>
             <div class="thanks-summary">
                 <h3
                     style="font-size: 1rem; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.5rem; margin-bottom: 0.75rem; color: var(--text-dark);">
@@ -2235,6 +2274,13 @@
             document.getElementById('thx-name').textContent = data.repName;
             document.getElementById('thx-count').textContent = data.totalParticipants + " 名";
             document.getElementById('thx-amount').textContent = "¥" + data.totalAmount.toLocaleString();
+
+            // お支払い期限（申込日を含めず7日後 ＝ 申込日＋7日）を計算して表示
+            const dl = new Date();
+            dl.setDate(dl.getDate() + 7);
+            const wd = ['日', '月', '火', '水', '木', '金', '土'][dl.getDay()];
+            document.getElementById('thx-deadline').textContent =
+                dl.getFullYear() + "年" + (dl.getMonth() + 1) + "月" + dl.getDate() + "日（" + wd + "）まで";
 
             // サンクス画面をアクティブにする
             document.getElementById('thanks-screen').classList.add('active');
