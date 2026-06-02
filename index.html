@@ -2027,9 +2027,10 @@
             const date = new Date(year, month, day);
 
             if (date.getFullYear() === year && date.getMonth() === month && date.getDate() === day) {
-                // 現在日付より未来でないか、および120歳以上離れていないかの範囲チェック
-                const currentYear = new Date().getFullYear();
-                if (year > currentYear || year < currentYear - 120) {
+                // 現在日付より未来でないか（当年の未来日も弾く）、120歳以上離れていないかの範囲チェック
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                if (date > today || year < today.getFullYear() - 120) {
                     input.classList.add('invalid');
                 } else {
                     input.classList.remove('invalid');
@@ -2130,6 +2131,10 @@
                 if (hasName || hasKana) {
                     participantCount++;
 
+                    // 送信直前に再検証（一括invalid解除後・下書き復元後でも不正値を確実に弾く）
+                    if (hasKana) sanitizeKatakana(kanaInput);
+                    validateDate(birthdateInput);
+
                     // ペア内の入力漏れチェック
                     if (!hasName) {
                         nameInput.classList.add('invalid');
@@ -2167,8 +2172,25 @@
                 return;
             }
 
+            // 4-2. 片肺ペアチェック（ペアは2名1組。1名のみの入力を禁止）
+            let pairError = false;
+            const pairCounts = {};
+            participantsData.forEach(p => { pairCounts[p.pairNo] = (pairCounts[p.pairNo] || 0) + 1; });
+            Object.keys(pairCounts).forEach(pn => {
+                if (pairCounts[pn] === 1) {
+                    pairError = true;
+                    hasError = true;
+                    document.querySelectorAll('tr.participant-row[data-pair="' + pn + '"]').forEach(row => {
+                        row.querySelector('.input-name').classList.add('invalid');
+                        row.querySelector('.input-kana').classList.add('invalid');
+                    });
+                }
+            });
+
             if (hasError) {
-                alert('入力内容に不備があります。赤枠で表示された項目を確認してください。');
+                alert(pairError
+                    ? 'ペアは必ず2名1組で入力してください。1名のみのペアがあります（赤枠の箇所をご確認ください）。'
+                    : '入力内容に不備があります。赤枠で表示された項目を確認してください。');
 
                 // 最初のエラー要素にスクロール
                 const firstError = document.querySelector('.invalid');
@@ -2239,21 +2261,32 @@
                 }, 1500);
             } else {
                 // 実際のGAS Web Appへの送信
+                // Content-Typeを付けない＝text/plain扱いでプリフライト回避。GASはJSON応答を返すので
+                // corsモード（既定）でレスポンスを読み、status で成否を正しく判定できる。
                 fetch(GAS_WEBAPP_URL, {
                     method: "POST",
-                    mode: "no-cors", // CORSエラー回避（Content-Typeは指定しない）
                     body: JSON.stringify(payload)
                 })
-                    .then(() => {
+                    .then(res => res.json())
+                    .then(result => {
                         loadingScreen.classList.remove('active');
-                        showThanksPage(payload);
+                        if (result && result.status === "success") {
+                            if (result.emailSent === false) {
+                                alert("お申し込みは受け付けましたが、控えメールの送信に失敗した可能性があります。お手数ですが事務局までご確認ください。");
+                            }
+                            showThanksPage(payload);
+                        } else {
+                            isSubmitting = false;       // 失敗時は再送信できるよう戻す
+                            submitBtn.disabled = false;
+                            alert("送信に失敗しました。お手数ですが、もう一度お試しください。\n（" + ((result && result.message) || "サーバーエラー") + "）");
+                        }
                     })
                     .catch(error => {
                         loadingScreen.classList.remove('active');
                         console.error("Error sending data to GAS:", error);
-                        alert("送信中にエラーが発生しました。ネットワーク接続を確認し、もう一度お試しください。");
                         isSubmitting = false;       // 失敗時は再送信できるよう戻す
                         submitBtn.disabled = false;
+                        alert("送信中にエラーが発生しました。ネットワーク接続を確認し、もう一度お試しください。");
                     });
             }
         }
