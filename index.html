@@ -2202,10 +2202,7 @@
                 // 実際のGAS Web Appへの送信
                 fetch(GAS_WEBAPP_URL, {
                     method: "POST",
-                    mode: "no-cors", // CORSエラー回避
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
+                    mode: "no-cors", // CORSエラー回避（Content-Typeは指定しない）
                     body: JSON.stringify(payload)
                 })
                     .then(() => {
