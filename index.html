@@ -319,6 +319,8 @@
         }
         .modal-summary {
             width: 100%;
+            min-width: 0; /* 名簿用 table{min-width:900px} を継承させない（モーダル内の横スクロール防止） */
+            table-layout: fixed; /* 列幅をモーダル幅に収め、長い値は折り返す */
             border-collapse: collapse;
             margin-bottom: 1.25rem;
             font-size: 0.95rem;
@@ -328,6 +330,7 @@
             padding: 0.55rem 0.5rem;
             border-bottom: 1px solid #f0f0f0;
             vertical-align: top;
+            word-break: break-word; /* 長い団体名なども折り返してはみ出しを防ぐ */
         }
         .modal-summary th {
             color: var(--text-light);
@@ -2261,25 +2264,19 @@
                 }, 1500);
             } else {
                 // 実際のGAS Web Appへの送信
-                // Content-Typeを付けない＝text/plain扱いでプリフライト回避。GASはJSON応答を返すので
-                // corsモード（既定）でレスポンスを読み、status で成否を正しく判定できる。
+                // GASウェブアプリは別オリジン(GitHub Pages)へCORSヘッダーを返さないため、
+                // corsモードでレスポンスを読もうとすると必ずブロックされ送信成功でも失敗扱いになる。
+                // そのため no-cors で投げっぱなしにし、送信完了として扱う。
+                // （GASは裏でデータ保存・控えメール送信を実行する。Content-Type未指定＝text/plain扱い）
                 fetch(GAS_WEBAPP_URL, {
                     method: "POST",
+                    mode: "no-cors",
                     body: JSON.stringify(payload)
                 })
-                    .then(res => res.json())
-                    .then(result => {
+                    .then(() => {
+                        // no-corsのレスポンスは中身を読めない。送信リクエストが通った時点で完了扱い。
                         loadingScreen.classList.remove('active');
-                        if (result && result.status === "success") {
-                            if (result.emailSent === false) {
-                                alert("お申し込みは受け付けましたが、控えメールの送信に失敗した可能性があります。お手数ですが事務局までご確認ください。");
-                            }
-                            showThanksPage(payload);
-                        } else {
-                            isSubmitting = false;       // 失敗時は再送信できるよう戻す
-                            submitBtn.disabled = false;
-                            alert("送信に失敗しました。お手数ですが、もう一度お試しください。\n（" + ((result && result.message) || "サーバーエラー") + "）");
-                        }
+                        showThanksPage(payload);
                     })
                     .catch(error => {
                         loadingScreen.classList.remove('active');
