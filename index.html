@@ -1304,7 +1304,7 @@
                     <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
                 </svg>
             </div>
-            <h2 class="thanks-title">お申し込みを受け付けました</h2>
+            <h2 class="thanks-title">仮申込が完了しました</h2>
             <p class="thanks-text">
                 ご入力いただいた内容を受け付けました。<br>
                 ご登録のメールアドレス宛てに、申込書PDFを添付した「お申し込み内容の控え」を自動でお送りしています。ご確認ください。
@@ -1356,7 +1356,7 @@
                     <div class="form-control">
                         <label for="rep-group">団体名 <span
                                 style="font-size: 0.75rem; font-weight: normal; color: var(--text-light);">（所属団体・クラブがない場合は自由に考えてください）</span></label>
-                        <input type="text" id="rep-group" required autocomplete="organization" placeholder="例：◯◯バドミントンクラブ">
+                        <input type="text" id="rep-group" required autocomplete="organization" placeholder="例：◯◯バドミントンクラブ" oninput="syncGroupToMembers(); calculateTotal();">
                         <div class="error-message">団体名を入力してください。</div>
                     </div>
                     <div class="form-control">
@@ -2091,6 +2091,21 @@
             saveDraft();              // 入力内容を自動保存
         }
 
+        // 責任者の「団体名」を各参加者の「所属」欄へ自動反映する。
+        // 空欄、または直前に自動入力した団体名のままの欄だけ上書きする
+        // （＝手動で別の所属を入れた欄は維持。編集も可能）。
+        let lastSyncedGroup = '';
+        function syncGroupToMembers() {
+            const group = document.getElementById('rep-group').value.trim();
+            document.querySelectorAll('tr.participant-row .input-address').forEach(input => {
+                const cur = input.value.trim();
+                if (cur === '' || cur === lastSyncedGroup) {
+                    input.value = group;
+                }
+            });
+            lastSyncedGroup = group;
+        }
+
         /**
          * 送信時の全体バリデーションと処理 (GAS連携版)
          */
@@ -2563,6 +2578,7 @@
         // ==========================================================================
         initRosterAccessibility();
         restoreDraft();          // 前回入力があれば復元（visiblePairs も復元）
+        syncGroupToMembers();    // 復元後、空の所属欄に団体名を反映（手動入力済みは維持）
         updatePairVisibility();  // ペア表示・人数・金額・チェックリストを初期反映
     </script>
 
