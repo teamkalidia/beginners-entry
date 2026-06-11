@@ -278,6 +278,39 @@
             font-family: inherit;
         }
 
+        /* 定員・残り枠バナー（GASから取得して表示） */
+        .capacity-banner {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            background: #f0f9ff;
+            border: 1px solid #bae6fd;
+            color: #0369a1;
+            border-radius: 10px;
+            padding: 0.6rem 1rem;
+            margin-bottom: 1.25rem;
+            font-size: 0.95rem;
+            font-weight: 600;
+            text-align: center;
+        }
+        .capacity-banner[hidden] { display: none; }
+        .capacity-banner .capacity-remaining {
+            font-size: 1.2rem;
+            margin: 0 0.1rem;
+        }
+        .capacity-banner.capacity-low {
+            background: #fffbeb;
+            border-color: #fde68a;
+            color: #b45309;
+        }
+        .capacity-banner.capacity-full {
+            background: #fef2f2;
+            border-color: #fecaca;
+            color: #b91c1c;
+        }
+
         /* 送信前の確認モーダル */
         .modal-overlay {
             position: fixed;
@@ -981,6 +1014,7 @@
             .rank-warning,
             .missing-checklist,
             .draft-banner,
+            .capacity-banner,
             .loading-overlay,
             .thanks-container {
                 display: none !important;
@@ -1291,6 +1325,9 @@
             <p class="subtitle">必要事項を入力し、画面右下の「印刷・PDF保存」または「送信する」ボタンを押してください。</p>
         </header>
 
+        <!-- 定員・残り枠バナー（受付状況をGASから取得して表示） -->
+        <div id="capacity-banner" class="capacity-banner" hidden></div>
+
         <!-- 入力の自動復元バナー（前回の続きがある場合のみ表示） -->
         <div id="draft-banner" class="draft-banner" hidden>
             <span>前回の入力内容を復元しました。続きから入力できます。</span>
@@ -1342,6 +1379,15 @@
                 </table>
             </div>
             <button type="button" class="btn btn-secondary" onclick="window.location.reload();">新しい申込を行う</button>
+        </div>
+
+        <!-- 満員時の受付終了画面（残り0ペアを検知したら表示） -->
+        <div id="closed-screen" class="thanks-container">
+            <h2 class="thanks-title">参加申込の受付は終了しました</h2>
+            <p class="thanks-text">
+                定員（<span id="closed-capacity">54</span>ペア）に達したため、参加申込の受付を終了いたしました。<br>
+                たくさんのお申し込みをありがとうございました。
+            </p>
         </div>
 
         <!-- フォーム本体 -->
@@ -1962,10 +2008,72 @@
         // GAS (Google Apps Script) 連携設定
         // ==========================================================================
         // ユーザー様がGASウェブアプリをデプロイした後に、発行されたURLを以下に設定してください。
-        const GAS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbw8jrx9Hiq0ESnzWnng8TgC6F0wvvuW6qY7pJYOhKY3aQWYJ9JWUeTGhoKJM9cYD6b0/exec";
+        const GAS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbziNga1i2W8qQUYbw8mLDVlHgfyD6RIeopkCN0BKd6Vc8n8ttGdE6g8C54QymZEdDpd/exec";
 
         // 1人あたりの参加料（GAS側の ENTRY_FEE と必ず一致させること）
         const ENTRY_FEE = 1500;
+
+        // ==========================================================================
+        // 受付状況（定員・残り枠）の取得と表示
+        //   - 定員の正はGAS側の CAPACITY_PAIRS（54ペア）。フォームはGETで取得して表示するだけ。
+        //   - 取得失敗時はバナー非表示のまま申込は妨げない（GAS側に定員ガードがあるため安全）。
+        // ==========================================================================
+        const CAPACITY_LOW_THRESHOLD = 8; // 残りこのペア数以下で「残りわずか」表示
+
+        function fetchCapacityStatus(group, email) {
+            const params = [];
+            if (group) params.push('group=' + encodeURIComponent(group));
+            if (email) params.push('email=' + encodeURIComponent(email));
+            const url = GAS_WEBAPP_URL + (params.length ? '?' + params.join('&') : '');
+            return fetch(url).then(res => res.json());
+        }
+
+        function renderCapacityBanner(info) {
+            if (!info || typeof info.remaining !== 'number') return;
+            const banner = document.getElementById('capacity-banner');
+            const capacity = Number(info.capacity);
+            const remaining = Number(info.remaining);
+            banner.classList.remove('capacity-low', 'capacity-full');
+            banner.textContent = '';
+            if (remaining <= 0) {
+                banner.classList.add('capacity-full');
+                banner.textContent = '定員' + capacity + 'ペアに達したため、受付を終了しました';
+                showClosedScreen(capacity);
+            } else {
+                const isLow = remaining <= CAPACITY_LOW_THRESHOLD;
+                if (isLow) banner.classList.add('capacity-low');
+                banner.appendChild(document.createTextNode('定員 ' + capacity + 'ペア ／ 残り '));
+                const em = document.createElement('span');
+                em.className = 'capacity-remaining';
+                em.textContent = remaining;
+                banner.appendChild(em);
+                banner.appendChild(document.createTextNode(' ペア' + (isLow ? '（残りわずか）' : '')));
+            }
+            banner.hidden = false;
+        }
+
+        // 満員：フォームを隠して受付終了画面を表示する
+        function showClosedScreen(capacity) {
+            document.querySelector('header p.subtitle').style.display = 'none';
+            document.getElementById('application-form').style.display = 'none';
+            if (capacity) document.getElementById('closed-capacity').textContent = capacity;
+            document.getElementById('closed-screen').classList.add('active');
+        }
+
+        // ページ表示時に受付状況を取得してバナー表示（満員ならフォームを閉じる）
+        function initCapacityStatus() {
+            if (GAS_WEBAPP_URL === "YOUR_GAS_WEBAPP_URL_HERE") return; // URL未設定（シミュレーション動作）時はスキップ
+            fetchCapacityStatus()
+                .then(renderCapacityBanner)
+                .catch(() => { /* 取得失敗時は何もしない */ });
+        }
+
+        // payloadに含まれるペア数（pairNoの種類数）を数える
+        function countPayloadPairs(payload) {
+            const pairNos = {};
+            (payload.participants || []).forEach(p => { pairNos[p.pairNo] = true; });
+            return Object.keys(pairNos).length;
+        }
 
         /**
          * ひらがなをカタカナに自動変換し、カタカナ・長音符・スペース以外の不正文字をチェック
@@ -2278,29 +2386,62 @@
                     alert('【シミュレーション動作】\nGASウェブアプリURLが未設定のため、実際のデータ保存とメール送信はスキップされました。\nURLを設定すると実際にスプレッドシートへの保存と自動返信メールが行われます。');
                 }, 1500);
             } else {
-                // 実際のGAS Web Appへの送信
-                // GASウェブアプリは別オリジン(GitHub Pages)へCORSヘッダーを返さないため、
-                // corsモードでレスポンスを読もうとすると必ずブロックされ送信成功でも失敗扱いになる。
-                // そのため no-cors で投げっぱなしにし、送信完了として扱う。
-                // （GASは裏でデータ保存・控えメール送信を実行する。Content-Type未指定＝text/plain扱い）
-                fetch(GAS_WEBAPP_URL, {
-                    method: "POST",
-                    mode: "no-cors",
-                    body: JSON.stringify(payload)
-                })
-                    .then(() => {
-                        // no-corsのレスポンスは中身を読めない。送信リクエストが通った時点で完了扱い。
-                        loadingScreen.classList.remove('active');
-                        showThanksPage(payload);
+                // 送信直前に最新の受付状況を確認（満員ガード＋重複警告）。
+                // 確認自体に失敗した場合は送信を続行する（GAS側にも定員ガードがあるため二重に安全）。
+                const reqPairs = countPayloadPairs(payload);
+                fetchCapacityStatus(payload.repGroup, payload.repEmail)
+                    .then(info => {
+                        if (info && typeof info.remaining === 'number' && reqPairs > info.remaining) {
+                            // 満員 or 残り枠不足：送信せずに知らせる
+                            loadingScreen.classList.remove('active');
+                            isSubmitting = false;
+                            submitBtn.disabled = false;
+                            renderCapacityBanner(info);
+                            alert(info.remaining <= 0
+                                ? '申し訳ありません。定員（' + info.capacity + 'ペア）に達したため、受付を終了しました。'
+                                : '申し訳ありません。残り枠が ' + info.remaining + ' ペアのため、今回のお申し込み（' + reqPairs + 'ペア）は受け付けできません。\nペア数を減らして再度お申し込みください。');
+                            return;
+                        }
+                        if (info && info.duplicate) {
+                            // 重複の可能性：警告のみ（2回に分けた追加申込は正当なケースのため続行可）
+                            loadingScreen.classList.remove('active');
+                            const goOn = confirm('同じ団体名またはメールアドレスでのお申し込みがすでにあります。\n追加申込（2回目の送信）の場合は、そのまま続行してください。\n\nこのまま送信しますか？');
+                            if (!goOn) {
+                                isSubmitting = false;
+                                submitBtn.disabled = false;
+                                return;
+                            }
+                            loadingScreen.classList.add('active');
+                        }
+                        postToGas(payload, loadingScreen, submitBtn);
                     })
-                    .catch(error => {
-                        loadingScreen.classList.remove('active');
-                        console.error("Error sending data to GAS:", error);
-                        isSubmitting = false;       // 失敗時は再送信できるよう戻す
-                        submitBtn.disabled = false;
-                        alert("送信中にエラーが発生しました。ネットワーク接続を確認し、もう一度お試しください。");
-                    });
+                    .catch(() => postToGas(payload, loadingScreen, submitBtn));
             }
+        }
+
+        // 実際のGAS Web Appへの送信
+        // GASウェブアプリは別オリジン(GitHub Pages)へCORSヘッダーを返さないため、
+        // corsモードでレスポンスを読もうとすると必ずブロックされ送信成功でも失敗扱いになる。
+        // そのため no-cors で投げっぱなしにし、送信完了として扱う。
+        // （GASは裏でデータ保存・控えメール送信を実行する。Content-Type未指定＝text/plain扱い）
+        function postToGas(payload, loadingScreen, submitBtn) {
+            fetch(GAS_WEBAPP_URL, {
+                method: "POST",
+                mode: "no-cors",
+                body: JSON.stringify(payload)
+            })
+                .then(() => {
+                    // no-corsのレスポンスは中身を読めない。送信リクエストが通った時点で完了扱い。
+                    loadingScreen.classList.remove('active');
+                    showThanksPage(payload);
+                })
+                .catch(error => {
+                    loadingScreen.classList.remove('active');
+                    console.error("Error sending data to GAS:", error);
+                    isSubmitting = false;       // 失敗時は再送信できるよう戻す
+                    submitBtn.disabled = false;
+                    alert("送信中にエラーが発生しました。ネットワーク接続を確認し、もう一度お試しください。");
+                });
         }
 
         /**
@@ -2310,9 +2451,10 @@
             // 送信が完了したので保存済みの下書きを破棄
             try { localStorage.removeItem(DRAFT_KEY); } catch (e) { /* 無視 */ }
 
-            // ヘッダーとフォーム本体を非表示にする
+            // ヘッダーとフォーム本体を非表示にする（残り枠バナーは古い数字になるため隠す）
             document.querySelector('header p.subtitle').style.display = 'none';
             document.getElementById('application-form').style.display = 'none';
+            document.getElementById('capacity-banner').hidden = true;
 
             // サンクス画面内のサマリーを埋める
             document.getElementById('thx-group').textContent = data.repGroup;
@@ -2578,6 +2720,7 @@
         // ==========================================================================
         initRosterAccessibility();
         restoreDraft();          // 前回入力があれば復元（visiblePairs も復元）
+        initCapacityStatus();    // 受付状況（定員・残り枠）を取得して表示（満員ならフォームを閉じる）
         syncGroupToMembers();    // 復元後、空の所属欄に団体名を反映（手動入力済みは維持）
         updatePairVisibility();  // ペア表示・人数・金額・チェックリストを初期反映
     </script>
