@@ -98,6 +98,20 @@
             color: var(--text-light);
         }
 
+        /* 開催情報（主催・日時・場所） */
+        .event-info {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.25rem 1.5rem;
+            margin-top: 0.85rem;
+            font-size: 0.9rem;
+            color: var(--text-dark);
+        }
+        .event-info span {
+            text-align: center;
+        }
+
         /* ==========================================================================
            3. 責任者情報入力欄 (2カラムグリッド)
            ========================================================================== */
@@ -1323,6 +1337,11 @@
         <header>
             <h1>第13回伊那市ビギナーズバドミントン交流会 参加申込書</h1>
             <p class="subtitle">必要事項を入力し、画面右下の「印刷・PDF保存」または「送信する」ボタンを押してください。</p>
+            <div class="event-info">
+                <span>主催：伊那市バドミントンクラブチームKALIDIA</span>
+                <span>日時：2026年9月20日（日）</span>
+                <span>場所：ロジテックアリーナ（伊那市民体育館サブアリーナ）</span>
+            </div>
         </header>
 
         <!-- 定員・残り枠バナー（受付状況をGASから取得して表示） -->
