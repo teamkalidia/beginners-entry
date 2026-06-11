@@ -7,3 +7,5 @@ appsscript.json
 *.pdf
 CLAUDE.md
 HANDOFF.md
+# Claude Code スキル一式（event-entry）は公開リポジトリに含めない
+.claude/
