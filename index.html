@@ -325,6 +325,32 @@
             color: #b91c1c;
         }
 
+        /* 大会要項・Excelメール添付申込の案内リンクバナー */
+        .info-link-banner {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+            flex-wrap: wrap;
+            background: #f0f9ff;
+            border: 1px solid var(--primary);
+            color: var(--primary);
+            border-radius: 10px;
+            padding: 0.75rem 1rem;
+            margin-bottom: 1.25rem;
+            font-size: 0.95rem;
+            font-weight: 600;
+            text-align: center;
+            text-decoration: none;
+        }
+        .info-link-banner:hover {
+            background: #e0f2fe;
+        }
+        .info-link-banner .info-link-here {
+            text-decoration: underline;
+            text-underline-offset: 3px;
+        }
+
         /* 送信前の確認モーダル */
         .modal-overlay {
             position: fixed;
@@ -1346,6 +1372,11 @@
 
         <!-- 定員・残り枠バナー（受付状況をGASから取得して表示） -->
         <div id="capacity-banner" class="capacity-banner" hidden></div>
+
+        <!-- 大会要項・Excelメール添付申込の案内（発リンク） -->
+        <a class="info-link-banner" href="https://laugh.under.jp/posts/news9.html" target="_blank" rel="noopener">
+            📄 交流会の詳細や Excelでメール添付申込方法 は<span class="info-link-here">コチラ</span> ↗
+        </a>
 
         <!-- 入力の自動復元バナー（前回の続きがある場合のみ表示） -->
         <div id="draft-banner" class="draft-banner" hidden>
