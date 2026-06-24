@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>第13回伊那市ビギナーズバドミントン交流会 参加申込フォーム</title>
+    <title>第13回伊那市ビギナーズ交流大会 参加申込フォーム</title>
 
     <!-- Google Fonts: Noto Sans JP & Outfit (英数字用) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -323,6 +323,32 @@
             background: #fef2f2;
             border-color: #fecaca;
             color: #b91c1c;
+        }
+
+        /* 申込開始日の赤字告知バナー */
+        .start-date-banner {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            background: #fff1f2;
+            border: 2px solid #dc2626;
+            color: #dc2626;
+            border-radius: 12px;
+            padding: 0.9rem 1rem;
+            margin-bottom: 1.25rem;
+            font-size: 1.5rem;
+            font-weight: 800;
+            line-height: 1.4;
+            text-align: center;
+        }
+        .start-date-banner .start-date-emph {
+            font-size: 1.9rem;
+        }
+        @media (max-width: 480px) {
+            .start-date-banner { font-size: 1.2rem; padding: 0.8rem 0.6rem; }
+            .start-date-banner .start-date-emph { font-size: 1.5rem; }
         }
 
         /* 大会要項・Excelメール添付申込の案内リンクバナー */
@@ -1361,7 +1387,7 @@
 
     <div id="form-container" class="container">
         <header>
-            <h1>第13回伊那市ビギナーズバドミントン交流会 参加申込書</h1>
+            <h1>第13回伊那市ビギナーズ交流大会 参加申込書</h1>
             <p class="subtitle">必要事項を入力し、画面右下の「印刷・PDF保存」または「送信する」ボタンを押してください。</p>
             <div class="event-info">
                 <span>主催：伊那市バドミントンクラブチームKALIDIA</span>
@@ -1370,12 +1396,17 @@
             </div>
         </header>
 
+        <!-- 申込開始日の告知（赤字・大きめ） -->
+        <div class="start-date-banner">
+            🗓 申込開始は <span class="start-date-emph">8月9日（日）</span> から
+        </div>
+
         <!-- 定員・残り枠バナー（受付状況をGASから取得して表示） -->
         <div id="capacity-banner" class="capacity-banner" hidden></div>
 
         <!-- 大会要項・Excelメール添付申込の案内（発リンク） -->
         <a class="info-link-banner" href="https://laugh.under.jp/posts/news9.html" target="_blank" rel="noopener">
-            📄 交流会の詳細や Excelでメール添付申込方法 は<span class="info-link-here">コチラ</span> ↗
+            📄 交流大会の詳細や Excelでメール添付申込方法 は<span class="info-link-here">コチラ</span> ↗
         </a>
 
         <!-- 入力の自動復元バナー（前回の続きがある場合のみ表示） -->
@@ -1394,15 +1425,17 @@
             <h2 class="thanks-title">仮申込が完了しました</h2>
             <p class="thanks-text">
                 ご入力いただいた内容を受け付けました。<br>
-                ご登録のメールアドレス宛てに、申込書PDFを添付した「お申し込み内容の控え」を自動でお送りしています。ご確認ください。
+                ご登録のメールアドレス宛てに、申込書PDFを添付した「お申し込み内容の控え」を自動でお送りしています。
             </p>
             <div class="payment-notice">
-                <p class="payment-notice-title">⚠ お申し込みはまだ完了していません</p>
+                <p class="payment-notice-title">📧 メールをご確認のうえ、お支払い手続きをお願いします</p>
                 <p>
                     このお申し込みは、参加料のご入金（お振込）をもって完了となります。<br>
+                    <span class="accent">お送りしたメールに、参加料の<strong>お支払い先（送付先）のご案内</strong>を記載しています。</span><br>
                     <span class="accent">お支払い期限：<span id="thx-deadline">-</span></span><br>
-                    控えメール（PDF添付）に記載の送付先へ、上記の期限までに参加料のご入金・お振込手続きをお願いいたします。<br>
-                    ご入金を確認した時点で、正式にお申し込み完了となります。
+                    メールをご確認のうえ、上記の期限までに参加料のお支払い手続きをお願いいたします。<br>
+                    ご入金を確認した時点で、正式にお申し込み完了となります。<br>
+                    <small>※メールが届かない場合は、迷惑メールフォルダもご確認ください。</small>
                 </p>
             </div>
             <div class="thanks-summary">
