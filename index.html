@@ -174,6 +174,16 @@
             gap: 0.375rem;
         }
 
+        /* ボット対策のダミー欄：画面外に追いやり人間には見せない（display:noneは単純ボットも読むため使わない） */
+        .hp-field {
+            position: absolute !important;
+            left: -9999px !important;
+            top: -9999px !important;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+        }
+
         .form-control.full-width {
             grid-column: span 2;
         }
@@ -1510,6 +1520,11 @@
                         <input type="email" id="rep-email" required inputmode="email" autocomplete="email" placeholder="例：taro@example.com">
                         <div class="error-message">有効なメールアドレスを入力してください。</div>
                     </div>
+                    <!-- ボット対策のダミー欄（人間には見えない・入力されない。埋まっていたらGAS側で破棄） -->
+                    <div class="hp-field" aria-hidden="true">
+                        <label for="website">Website</label>
+                        <input type="text" id="website" name="website" tabindex="-1" autocomplete="off">
+                    </div>
                 </div>
             </section>
 
@@ -2419,7 +2434,9 @@
                 repEmail: document.getElementById('rep-email').value.trim(),
                 totalParticipants: participantCount,
                 totalAmount: participantCount * ENTRY_FEE,
-                participants: participantsData
+                participants: participantsData,
+                // ボット対策のダミー欄。人間は空のまま（値が入っていたらGAS側で破棄される）
+                website: (document.getElementById('website') || { value: '' }).value
             };
 
             // 6. 送信前に確認モーダルを表示（実際の送信は confirmSend() 経由で行う）
