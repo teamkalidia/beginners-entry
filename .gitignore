@@ -9,3 +9,8 @@ CLAUDE.md
 HANDOFF.md
 # Claude Code スキル一式（event-entry）は公開リポジトリに含めない
 .claude/
+# Excel申込の取込スクリプト・作業用ファイルも非公開
+*.py
+*.xlsx
+# 旧clasp設定の退避ファイル（scriptId入り）も非公開
+*.bak
