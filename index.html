@@ -1483,6 +1483,15 @@
             </p>
         </div>
 
+        <!-- 受付開始前の画面（開始日より前はフォームを隠して表示） -->
+        <div id="preopen-screen" class="thanks-container">
+            <h2 class="thanks-title">参加申込の受付開始前です</h2>
+            <p class="thanks-text">
+                参加申込の受付は <strong id="preopen-date">8月9日（日）</strong> から開始します。<br>
+                受付開始まで、今しばらくお待ちください。
+            </p>
+        </div>
+
         <!-- フォーム本体 -->
         <form id="application-form" onsubmit="handleFormSubmit(event)">
             <!-- 1. 申込責任者情報 -->
@@ -2118,6 +2127,11 @@
         // ==========================================================================
         const CAPACITY_LOW_THRESHOLD = 8; // 残りこのペア数以下で「残りわずか」表示
 
+        // 受付開始日時（端末ローカル時刻・GET失敗時のフォールバック用）。
+        // 正はGAS側の ENTRY_OPEN_DATE。ここは通信できなかった時の保険で、月は0始まり=7が8月。
+        const ENTRY_OPEN_AT = new Date(2026, 7, 9, 0, 0, 0); // 2026-08-09 00:00
+        const ENTRY_OPEN_DISPLAY = "8月9日（日）";
+
         function fetchCapacityStatus(group, email) {
             const params = [];
             if (group) params.push('group=' + encodeURIComponent(group));
@@ -2128,6 +2142,12 @@
 
         function renderCapacityBanner(info) {
             if (!info || typeof info.remaining !== 'number') return;
+            // 受付開始前：フォームを隠して開始前画面を表示（満員判定より優先）。
+            // 残数バナーは出さず、既存の「申込開始は8月9日から」赤字告知に寄せる。
+            if (info.notOpenYet) {
+                showPreopenScreen(info.opensOn);
+                return;
+            }
             const banner = document.getElementById('capacity-banner');
             const capacity = Number(info.capacity);
             const remaining = Number(info.remaining);
@@ -2158,12 +2178,25 @@
             document.getElementById('closed-screen').classList.add('active');
         }
 
-        // ページ表示時に受付状況を取得してバナー表示（満員ならフォームを閉じる）
+        // 受付開始前：フォームを隠して開始前画面を表示する
+        function showPreopenScreen(opensOn) {
+            document.querySelector('header p.subtitle').style.display = 'none';
+            document.getElementById('application-form').style.display = 'none';
+            const el = document.getElementById('preopen-date');
+            if (el) el.textContent = opensOn || ENTRY_OPEN_DISPLAY;
+            document.getElementById('preopen-screen').classList.add('active');
+        }
+
+        // ページ表示時に受付状況を取得してバナー表示（満員・受付開始前ならフォームを閉じる）
         function initCapacityStatus() {
             if (GAS_WEBAPP_URL === "YOUR_GAS_WEBAPP_URL_HERE") return; // URL未設定（シミュレーション動作）時はスキップ
             fetchCapacityStatus()
                 .then(renderCapacityBanner)
-                .catch(() => { /* 取得失敗時は何もしない */ });
+                .catch(() => {
+                    // 取得失敗時のフォールバック：端末時刻で開始前なら開始前画面を出す。
+                    // （最終防衛はGAS側のPOSTガードなので、多少の時計ズレがあっても保存はされない）
+                    if (new Date() < ENTRY_OPEN_AT) showPreopenScreen(ENTRY_OPEN_DISPLAY);
+                });
         }
 
         // payloadに含まれるペア数（pairNoの種類数）を数える
@@ -2491,6 +2524,17 @@
                 const reqPairs = countPayloadPairs(payload);
                 fetchCapacityStatus(payload.repGroup, payload.repEmail)
                     .then(info => {
+                        if (info && info.notOpenYet) {
+                            // 受付開始前：送信せずに知らせてフォームを閉じる
+                            // （no-corsでPOST応答は読めないため、GETで得た状態でここでガードする）
+                            loadingScreen.classList.remove('active');
+                            isSubmitting = false;
+                            submitBtn.disabled = false;
+                            alert('参加申込の受付は ' + (info.opensOn || ENTRY_OPEN_DISPLAY) + ' から開始します。\n受付開始まで今しばらくお待ちください。');
+                            showPreopenScreen(info.opensOn);
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                            return;
+                        }
                         if (info && typeof info.remaining === 'number' && reqPairs > info.remaining) {
                             // 満員 or 残り枠不足：送信せずに知らせる
                             loadingScreen.classList.remove('active');
