@@ -2257,10 +2257,17 @@
             banner.hidden = false;
         }
 
+        // 受付終了時に役目を終える告知バナー（開始日・締切）を隠す
+        function hideEntryBanners() {
+            document.querySelectorAll('.start-date-banner, .deadline-banner')
+                .forEach(el => { el.style.display = 'none'; });
+        }
+
         // 満員：フォームを隠して受付終了画面を表示する
         function showClosedScreen(capacity) {
             document.querySelector('header p.subtitle').style.display = 'none';
             document.getElementById('application-form').style.display = 'none';
+            hideEntryBanners();
             if (capacity) document.getElementById('closed-capacity').textContent = capacity;
             document.getElementById('closed-screen').classList.add('active');
         }
@@ -2278,6 +2285,7 @@
         function showDeadlineScreen(closesOn) {
             document.querySelector('header p.subtitle').style.display = 'none';
             document.getElementById('application-form').style.display = 'none';
+            hideEntryBanners();
             const el = document.getElementById('deadline-date');
             if (el) el.textContent = closesOn || ENTRY_CLOSE_DISPLAY;
             document.getElementById('deadline-screen').classList.add('active');
