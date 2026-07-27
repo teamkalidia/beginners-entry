@@ -2205,8 +2205,9 @@
         const CAPACITY_LOW_THRESHOLD = 8; // 残りこのペア数以下で「残りわずか」表示
 
         // 受付開始日時（端末ローカル時刻・GET失敗時のフォールバック用）。
-        // 正はGAS側の ENTRY_OPEN_DATE。ここは通信できなかった時の保険で、月は0始まり=7が8月。
-        const ENTRY_OPEN_AT = new Date(2026, 7, 9, 0, 0, 0); // 2026-08-09 00:00
+        // 正はGAS側の ENTRY_OPEN_DATETIME。ここは通信できなかった時の保険で、月は0始まり=7が8月。
+        // ⚠ 実際の開放は 8/8 22:00 に前倒し。告知文言（ENTRY_OPEN_DISPLAY）は「8月9日（日）」のまま据え置き。
+        const ENTRY_OPEN_AT = new Date(2026, 7, 8, 22, 0, 0); // 2026-08-08 22:00
         const ENTRY_OPEN_DISPLAY = "8月9日（日）";
 
         // 申込締切（端末ローカル時刻・GET失敗時のフォールバック用）。正はGAS側の ENTRY_CLOSE_DATE。
