@@ -335,7 +335,7 @@
             color: #b91c1c;
         }
 
-        /* 申込開始日の赤字告知バナー */
+        /* 申込開始日の赤字告知バナー（2026-08-08 受付開始につきHTMLは削除・再ロック時の再利用用に残置） */
         .start-date-banner {
             display: flex;
             align-items: center;
@@ -1461,11 +1461,6 @@
             </div>
         </header>
 
-        <!-- 申込開始日の告知（赤字・大きめ） -->
-        <div class="start-date-banner">
-            🗓 申込開始は <span class="start-date-emph">8月9日（日）</span> から
-        </div>
-
         <!-- 申込締切の告知 -->
         <div class="deadline-banner">
             📅 申込締切 <span class="deadline-emph">9月6日（日）</span> 必着
@@ -2205,9 +2200,10 @@
         const CAPACITY_LOW_THRESHOLD = 8; // 残りこのペア数以下で「残りわずか」表示
 
         // 受付開始日時（端末ローカル時刻・GET失敗時のフォールバック用）。
-        // 正はGAS側の ENTRY_OPEN_DATETIME。ここは通信できなかった時の保険で、月は0始まり=7が8月。
-        // ⚠ 実際の開放は 8/8 22:00 に前倒し。告知文言（ENTRY_OPEN_DISPLAY）は「8月9日（日）」のまま据え置き。
-        const ENTRY_OPEN_AT = new Date(2026, 7, 8, 22, 0, 0); // 2026-08-08 22:00
+        // 正はGAS側の ENTRY_OPEN_DATETIME。ここは通信できなかった時の保険。
+        // ⚠ 2026-08-08 受付開始：null＝開始前ガード無効（受付中）。再ロックするときは
+        //    new Date(...) を入れ、GAS側の ENTRY_OPEN_DATETIME もそろえること（月は0始まり=7が8月）。
+        const ENTRY_OPEN_AT = null; // 受付中（ガード無効）。例: new Date(2026, 7, 8, 22, 0, 0)
         const ENTRY_OPEN_DISPLAY = "8月9日（日）";
 
         // 申込締切（端末ローカル時刻・GET失敗時のフォールバック用）。正はGAS側の ENTRY_CLOSE_DATE。
@@ -2226,7 +2222,7 @@
         function renderCapacityBanner(info) {
             if (!info || typeof info.remaining !== 'number') return;
             // 受付開始前：フォームを隠して開始前画面を表示（満員判定より優先）。
-            // 残数バナーは出さず、既存の「申込開始は8月9日から」赤字告知に寄せる。
+            // 残数バナーは出さず開始前画面に寄せる（※現在はガード無効＝通常この分岐に入らない）。
             if (info.notOpenYet) {
                 showPreopenScreen(info.opensOn);
                 return;
@@ -2301,7 +2297,7 @@
                     // 取得失敗時のフォールバック：端末時刻で開始前／締切後なら該当画面を出す。
                     // （最終防衛はGAS側のPOSTガードなので、多少の時計ズレがあっても保存はされない）
                     const now = new Date();
-                    if (now < ENTRY_OPEN_AT) showPreopenScreen(ENTRY_OPEN_DISPLAY);
+                    if (ENTRY_OPEN_AT && now < ENTRY_OPEN_AT) showPreopenScreen(ENTRY_OPEN_DISPLAY);
                     else if (now >= ENTRY_CLOSE_AT) showDeadlineScreen(ENTRY_CLOSE_DISPLAY);
                 });
         }
