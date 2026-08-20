@@ -1464,7 +1464,7 @@
         <!-- 申込締切の告知 -->
         <div class="deadline-banner">
             📅 申込締切 <span class="deadline-emph">9月6日（日）</span> 必着
-            <span class="deadline-note">※定員54ペアに達し次第、締切前でも受付を終了します</span>
+            <span class="deadline-note">※定員60ペアに達し次第、締切前でも受付を終了します</span>
         </div>
 
         <!-- 定員・残り枠バナー（受付状況をGASから取得して表示） -->
@@ -1541,7 +1541,7 @@
         <div id="closed-screen" class="thanks-container">
             <h2 class="thanks-title">参加申込の受付は終了しました</h2>
             <p class="thanks-text">
-                定員（<span id="closed-capacity">54</span>ペア）に達したため、参加申込の受付を終了いたしました。<br>
+                定員（<span id="closed-capacity">60</span>ペア）に達したため、参加申込の受付を終了いたしました。<br>
                 たくさんのお申し込みをありがとうございました。
             </p>
         </div>
@@ -2194,7 +2194,7 @@
 
         // ==========================================================================
         // 受付状況（定員・残り枠）の取得と表示
-        //   - 定員の正はGAS側の CAPACITY_PAIRS（54ペア）。フォームはGETで取得して表示するだけ。
+        //   - 定員の正はGAS側の CAPACITY_PAIRS（60ペア）。フォームはGETで取得して表示するだけ。
         //   - 取得失敗時はバナー非表示のまま申込は妨げない（GAS側に定員ガードがあるため安全）。
         // ==========================================================================
         const CAPACITY_LOW_THRESHOLD = 8; // 残りこのペア数以下で「残りわずか」表示
