@@ -2288,8 +2288,15 @@
             document.getElementById('deadline-screen').classList.add('active');
         }
 
+        // ⚠ 2026-08-22 満員クローズ：定員60ペアに達したため、受付状況のGETを行わず
+        //    無条件で「受付終了」画面を表示する。受付を再開するときは FORCE_CLOSED を
+        //    false に戻すだけでよい（下のGETによる通常処理がそのまま復活する）。
+        const FORCE_CLOSED = true;
+        const FORCE_CLOSED_CAPACITY = 60;
+
         // ページ表示時に受付状況を取得してバナー表示（満員・受付開始前ならフォームを閉じる）
         function initCapacityStatus() {
+            if (FORCE_CLOSED) { showClosedScreen(FORCE_CLOSED_CAPACITY); return; } // 満員クローズ（GETしない）
             if (GAS_WEBAPP_URL === "YOUR_GAS_WEBAPP_URL_HERE") return; // URL未設定（シミュレーション動作）時はスキップ
             fetchCapacityStatus()
                 .then(renderCapacityBanner)
